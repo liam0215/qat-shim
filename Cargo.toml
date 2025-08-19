@@ -1,0 +1,15 @@
+[package]
+name = "qat-shim"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+bindgen = "0.72.0"
+cc = "1.0"
+pkg-config = "0.3"
+
+[dev-dependencies]
+serial_test = "3"
