@@ -100,10 +100,10 @@ fn main() {
     }
 
     let b = b
-        .allowlist_type("^CpaStatus.*|^OSAL_STATUS.*")
+        .allowlist_type("^CpaStatus.*|^OSAL_STATUS.*|^CpaInstanceInfo2.*")
         .allowlist_var("^CPA_STATUS.*|^cpa_.*")
         .allowlist_function(
-            "^osalHashSHA512Full.*|^edDsa.*|^qat_eddsa_sign.*|^qat_get_instance.*|^qat_cy.*|^qat_start_session.*|^qat_stop_session.*|^qat_qae_mem_.*|^qat_set_address_translation.*",
+            "^icp_sal_CyPollInstance.*|^cpaCyInstanceGetInfo2.*|^osalHashSHA512Full.*|^edDsa.*|^qat_eddsa_sign.*|^qat_get_instance.*|^qat_cy.*|^qat_start_session.*|^qat_stop_session.*|^qat_qae_mem_.*|^qat_set_address_translation.*",
         )
         .allowlist_type("^EdDsa.*");
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());

@@ -1,6 +1,7 @@
 #pragma once
 #include <qat/cpa_eddsa_sample.h>
 #include "icp_sal_user.h"
+#include "icp_sal_poll.h"
 
 #ifdef __cplusplus
 extern "C" {

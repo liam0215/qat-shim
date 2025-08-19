@@ -13,8 +13,14 @@ pub mod qat {
 
     use super::ffi::*;
 
-    #[derive(Debug)]
+    pub const HASH_LEN: usize = 64; // SHA-512 output size (bytes)
+    pub const DATA_LEN: usize = 32; // Ed25519 key size (bytes)
+
+    #[derive(Debug, Clone)]
     pub struct Instance(*mut ::std::os::raw::c_void);
+
+    unsafe impl Send for Instance {}
+    unsafe impl Sync for Instance {}
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     pub enum Status {
@@ -74,9 +80,9 @@ pub mod qat {
         }
     }
 
-    pub fn hash_sha512<T: AsRef<str>>(msg: T) -> Result<[u8; 64], Status> {
+    pub fn hash_sha512<T: AsRef<str>>(msg: T) -> Result<[u8; HASH_LEN], Status> {
         let msg = msg.as_ref();
-        let mut hash = [0u8; 64];
+        let mut hash = [0u8; HASH_LEN];
         let rc = unsafe {
             osalHashSHA512Full(
                 msg.as_ptr() as *mut Cpa8U,
@@ -108,6 +114,81 @@ pub mod qat {
 
         pub fn set_address_translation(&self) -> Result<(), Status> {
             let rc = unsafe { qat_set_address_translation(self.0) };
+            match Status::from(rc) {
+                Status::Success => Ok(()),
+                e => Err(e),
+            }
+        }
+
+        pub fn is_polled(&self) -> Result<bool, Status> {
+            let mut info = CpaInstanceInfo2::default();
+            let rc = unsafe { cpaCyInstanceGetInfo2(self.0, &mut info as *mut CpaInstanceInfo2) };
+            match Status::from(rc) {
+                Status::Success => Ok(info.isPolled == _CpaBoolean_CPA_TRUE),
+                e => Err(e),
+            }
+        }
+
+        pub fn poll_once(&self) -> Result<(), Status> {
+            let rc = unsafe { icp_sal_CyPollInstance(self.0, 0) };
+            match Status::from(rc) {
+                Status::Success | Status::Retry => Ok(()),
+                e => Err(e),
+            }
+        }
+
+        pub fn eddsa_gen_public_key(
+            &self,
+            private_key: &[u8; DATA_LEN],
+        ) -> Result<[u8; DATA_LEN], Status> {
+            let mut public_key = [0u8; DATA_LEN];
+            let rc = unsafe {
+                edDsaGenPubKey(
+                    private_key.as_ptr() as *mut Cpa8U,
+                    public_key.as_mut_ptr() as *mut Cpa8U,
+                    self.0,
+                )
+            };
+            match Status::from(rc) {
+                Status::Success => Ok(public_key),
+                e => Err(e),
+            }
+        }
+
+        pub fn eddsa_sign_msg(
+            &self,
+            private_key: &[u8; DATA_LEN],
+            message_hash: &[u8; HASH_LEN],
+        ) -> Result<[u8; DATA_LEN * 2], Status> {
+            let mut signature = [0u8; DATA_LEN * 2];
+            let rc = unsafe {
+                edDsaSign(
+                    private_key.as_ptr() as *mut Cpa8U,
+                    message_hash.as_ptr() as *mut Cpa8U,
+                    signature.as_mut_ptr() as *mut Cpa8U,
+                    self.0,
+                )
+            };
+            match Status::from(rc) {
+                Status::Success => Ok(signature),
+                e => Err(e),
+            }
+        }
+
+        pub fn eddsa_verify_msg(
+            &self,
+            public_key: &[u8; DATA_LEN],
+            message_hash: &[u8; HASH_LEN],
+            signature: &[u8; DATA_LEN * 2],
+        ) -> Result<(), Status> {
+            let rc = unsafe {
+                edDsaVerify(
+                    public_key.as_ptr() as *mut Cpa8U,
+                    message_hash.as_ptr() as *mut Cpa8U,
+                    signature.as_ptr() as *mut Cpa8U,
+                    self.0,
+                )
+            };
             match Status::from(rc) {
                 Status::Success => Ok(()),
                 e => Err(e),

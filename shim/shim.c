@@ -4,6 +4,8 @@
 
 #define MAX_INSTANCES 1024
 
+int gDebugParam = 1;
+
 int qat_start_session(const char *pProcessName) {
   CpaStatus status = icp_sal_userStart(pProcessName);
   return (int) status;
