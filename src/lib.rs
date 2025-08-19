@@ -8,7 +8,6 @@ mod ffi {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 
-// Safe-ish helpers around the raw C API.
 pub mod qat {
     use std::ffi::CString;
 
@@ -75,6 +74,22 @@ pub mod qat {
         }
     }
 
+    pub fn hash_sha512<T: AsRef<str>>(msg: T) -> Result<[u8; 64], Status> {
+        let msg = msg.as_ref();
+        let mut hash = [0u8; 64];
+        let rc = unsafe {
+            osalHashSHA512Full(
+                msg.as_ptr() as *mut Cpa8U,
+                hash.as_mut_ptr() as *mut Cpa8U,
+                msg.len() as _,
+            )
+        };
+        match Status::from(rc) {
+            Status::Success => Ok(hash),
+            e => Err(e),
+        }
+    }
+
     impl Instance {
         pub fn start(&self) -> Result<(), Status> {
             let rc = unsafe { qat_cy_start_instance(self.0) };
@@ -85,6 +100,14 @@ pub mod qat {
         }
         pub fn stop(&self) -> Result<(), Status> {
             let rc = unsafe { qat_cy_stop_instance(self.0) };
+            match Status::from(rc) {
+                Status::Success => Ok(()),
+                e => Err(e),
+            }
+        }
+
+        pub fn set_address_translation(&self) -> Result<(), Status> {
+            let rc = unsafe { qat_set_address_translation(self.0) };
             match Status::from(rc) {
                 Status::Success => Ok(()),
                 e => Err(e),

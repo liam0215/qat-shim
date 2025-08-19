@@ -15,6 +15,7 @@ int qat_cy_start_instance(CpaInstanceHandle inst);
 int qat_cy_stop_instance(CpaInstanceHandle inst);
 int qat_eddsa_sign(CpaInstanceHandle inst, Cpa8U *private_key,
                    Cpa8U *message_hash, Cpa8U *signature);
+int qat_set_address_translation(CpaInstanceHandle inst);
 
 #ifdef __cplusplus
 }

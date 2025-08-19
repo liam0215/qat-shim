@@ -83,17 +83,11 @@ int qat_eddsa_sign(CpaInstanceHandle inst, Cpa8U *private_key,
   return (int)status;
 }
 
-// ---- Pattern for a synchronous crypto call (sketch) ----
-// Provide a callback that signals waiter_signal(...) and stash status.
-#if 0
-// Example wrapper you would adapt for your specific op, e.g., EdDSA verify.
-// int qat_cy_eddsa_verify_sync(CpaInstanceHandle inst, const Cpa8U* msg, size_t msg_len, ... ) {
-//     qat_waiter_t w; waiter_init(&w);
-//     CpaStatus s = cpaCyEdDsaVerify(inst, my_cb, &w, /* other args */);
-//     if (s != CPA_STATUS_SUCCESS) { waiter_destroy(&w); return (int)s; }
-//     waiter_wait(&w);
-//     int rc = w.status;
-//     waiter_destroy(&w);
-//     return rc;
-// }
-#endif
+int qat_set_address_translation(CpaInstanceHandle inst) {
+  CpaStatus status = cpaCySetAddressTranslation(inst, qaeVirtToPhysNUMA);
+  if (status != CPA_STATUS_SUCCESS) {
+    PRINT_ERR("Error setting address translation for QAT instance\n");
+  }
+  return (int)status;
+}
+
