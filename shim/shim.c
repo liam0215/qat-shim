@@ -17,6 +17,18 @@ int qat_stop_session() {
   return (int) status;
 }
 
+int qat_qae_mem_init() {
+  CpaStatus status = qaeMemInit();
+  if (status != CPA_STATUS_SUCCESS) {
+    PRINT_ERR("Error initializing memory for QAT\n");
+  }
+  return (int) status;
+}
+
+void qat_qae_mem_destroy() {
+  qaeMemDestroy();
+}
+
 int qat_get_instance(CpaInstanceHandle *out) {
   CpaInstanceHandle instHandles[MAX_INSTANCES];
   Cpa16U numInstances = 0;

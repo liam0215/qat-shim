@@ -6,6 +6,8 @@
 extern "C" {
 #endif
 
+int qat_qae_mem_init();
+void qat_qae_mem_destroy();
 int qat_start_session(const char *pProcessName);
 int qat_stop_session();
 int qat_get_instance(CpaInstanceHandle* out);

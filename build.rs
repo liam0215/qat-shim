@@ -103,7 +103,7 @@ fn main() {
         .allowlist_type("^CpaStatus.*")
         .allowlist_var("^CPA_STATUS.*|^cpa_.*")
         .allowlist_function(
-            "^edDsa.*|^qat_eddsa_sign.*|^qat_get_instance.*|^qat_cy.*|^qat_start_session.*|^qat_stop_session.*",
+            "^edDsa.*|^qat_eddsa_sign.*|^qat_get_instance.*|^qat_cy.*|^qat_start_session.*|^qat_stop_session.*|^qat_qae_mem_.*",
         )
         .allowlist_type("^EdDsa.*");
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());

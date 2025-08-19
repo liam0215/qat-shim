@@ -52,6 +52,18 @@ pub mod qat {
         }
     }
 
+    pub fn qae_mem_init() -> Result<(), Status> {
+        let rc = unsafe { qat_qae_mem_init() };
+        match Status::from(rc) {
+            Status::Success => Ok(()),
+            e => Err(e),
+        }
+    }
+
+    pub fn qae_mem_destroy() {
+        unsafe { qat_qae_mem_destroy() };
+    }
+
     pub fn get_first_instance() -> Result<Instance, Status> {
         let mut h: *mut ::std::os::raw::c_void = std::ptr::null_mut();
         let rc = unsafe { qat_get_instance(&mut h as *mut _) };
