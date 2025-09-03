@@ -1,10 +1,11 @@
 [package]
 name = "qat-shim"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 libc = "0.2"
+x86 = "0.52.0"
 
 [build-dependencies]
 bindgen = "0.72.0"
@@ -13,3 +14,15 @@ pkg-config = "0.3"
 
 [dev-dependencies]
 serial_test = "3"
+criterion = "0.7.0"
+
+# [profile.release]
+# debug = true
+# overflow-checks = true
+# debug-assertions = true
+# lto = "off"
+# codegen-units = 1
+
+[[bench]]
+name = "qat_eddsa_bench"
+harness = false

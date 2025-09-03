@@ -15,10 +15,16 @@ pub fn sign_test_message(inst: &Instance) -> Result<(), Status> {
         0x3d, 0x42,
     ];
 
-    let message = "abc";
-    let hash = hash_sha512(message).expect("hash_sha512 failed");
+    let message = b"abc";
 
+    let (start_tsc, start_id) = unsafe { x86::time::rdtscp() };
+    let hash = hash_sha512(message).expect("hash_sha512 failed");
+    let (end_tsc, end_id) = unsafe { x86::time::rdtscp() };
+    if start_id == end_id {
+        println!("Time for hash: {} cycles", end_tsc - start_tsc);
+    }
     println!("Message Hash: {:?}", hash);
+
     let public_key = if inst.is_polled()? {
         let (tx, rx) = channel();
         let inst2 = inst.clone();
@@ -27,7 +33,12 @@ pub fn sign_test_message(inst: &Instance) -> Result<(), Status> {
                 let _ = inst2.clone().poll_once();
             }
         });
+        let (start_tsc, start_id) = unsafe { x86::time::rdtscp() };
         let public_key = inst.eddsa_gen_public_key(&private_key)?;
+        let (end_tsc, end_id) = unsafe { x86::time::rdtscp() };
+        if start_id == end_id {
+            println!("Time for public key gen: {} cycles", end_tsc - start_tsc);
+        }
         tx.send(())
             .expect("Failed to send stop signal to polling thread");
         poll.join().expect("Polling thread panicked");
@@ -35,7 +46,6 @@ pub fn sign_test_message(inst: &Instance) -> Result<(), Status> {
     } else {
         inst.eddsa_gen_public_key(&private_key)?
     };
-
     println!("Public Key: {:?}", public_key);
 
     let signature = if inst.is_polled()? {
@@ -46,7 +56,12 @@ pub fn sign_test_message(inst: &Instance) -> Result<(), Status> {
                 let _ = inst2.clone().poll_once();
             }
         });
+        let (start_tsc, start_id) = unsafe { x86::time::rdtscp() };
         let signature = inst.eddsa_sign_msg(&private_key, &hash)?;
+        let (end_tsc, end_id) = unsafe { x86::time::rdtscp() };
+        if start_id == end_id {
+            println!("Time for signing: {} cycles", end_tsc - start_tsc);
+        }
         tx.send(())
             .expect("Failed to send stop signal to polling thread");
         poll.join().expect("Polling thread panicked");
@@ -54,7 +69,6 @@ pub fn sign_test_message(inst: &Instance) -> Result<(), Status> {
     } else {
         inst.eddsa_sign_msg(&private_key, &hash)?
     };
-
     println!("Signature: {:?}", signature);
 
     // Verify the signature using the public key
@@ -66,7 +80,12 @@ pub fn sign_test_message(inst: &Instance) -> Result<(), Status> {
                 let _ = inst2.clone().poll_once();
             }
         });
+        let (start_tsc, start_id) = unsafe { x86::time::rdtscp() };
         let is_valid = inst.eddsa_verify_msg(&public_key, &hash, &signature);
+        let (end_tsc, end_id) = unsafe { x86::time::rdtscp() };
+        if start_id == end_id {
+            println!("Time for verification: {} cycles", end_tsc - start_tsc);
+        }
         tx.send(())
             .expect("Failed to send stop signal to polling thread");
         poll.join().expect("Polling thread panicked");

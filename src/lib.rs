@@ -16,6 +16,7 @@ pub mod qat {
     pub const HASH_LEN: usize = 64; // SHA-512 output size (bytes)
     pub const DATA_LEN: usize = 32; // Ed25519 key size (bytes)
 
+    #[repr(transparent)]
     #[derive(Debug, Clone)]
     pub struct Instance(*mut ::std::os::raw::c_void);
 
@@ -80,8 +81,7 @@ pub mod qat {
         }
     }
 
-    pub fn hash_sha512<T: AsRef<str>>(msg: T) -> Result<[u8; HASH_LEN], Status> {
-        let msg = msg.as_ref();
+    pub fn hash_sha512(msg: &[u8]) -> Result<[u8; HASH_LEN], Status> {
         let mut hash = [0u8; HASH_LEN];
         let rc = unsafe {
             osalHashSHA512Full(
@@ -94,6 +94,18 @@ pub mod qat {
             Status::Success => Ok(hash),
             e => Err(e),
         }
+    }
+
+    pub fn qat_alloc(size: usize, node: usize, align: usize) -> *mut u8 {
+        let ptr: *mut ::std::os::raw::c_void =
+            unsafe { qaeMemAllocNUMA(size, node as ::std::os::raw::c_int, align) };
+        ptr as *mut u8
+    }
+
+    pub fn qat_free(ptr: *mut u8) {
+        let ptr = ptr as *mut ::std::os::raw::c_void;
+        let ptr = &ptr as *const *mut ::std::os::raw::c_void;
+        unsafe { qaeMemFreeNUMA(ptr as _) };
     }
 
     impl Instance {
@@ -193,6 +205,104 @@ pub mod qat {
                 Status::Success => Ok(()),
                 e => Err(e),
             }
+        }
+
+        pub fn point_multiplication(
+            &self,
+            x: &[u8; DATA_LEN],
+            y: &[u8; DATA_LEN],
+            s: &[u8; DATA_LEN],
+        ) -> Result<[u8; DATA_LEN], Status> {
+            let mut product_x = [0u8; DATA_LEN];
+            let mut product_y = [0u8; DATA_LEN];
+            let mut product = [0u8; DATA_LEN];
+            let rc = unsafe {
+                pointMultiplication(
+                    x.as_ptr() as *mut Cpa8U,
+                    y.as_ptr() as *mut Cpa8U,
+                    s.as_ptr() as *mut Cpa8U,
+                    product_x.as_mut_ptr() as *mut Cpa8U,
+                    product_y.as_mut_ptr() as *mut Cpa8U,
+                    self.0,
+                )
+            };
+            match Status::from(rc) {
+                Status::Success => {
+                    unsafe {
+                        encodePoint(
+                            product_x.as_ptr() as *mut Cpa8U,
+                            product_y.as_ptr() as *mut Cpa8U,
+                            product.as_mut_ptr() as *mut Cpa8U,
+                        );
+                    }
+                    Ok(product)
+                }
+                e => Err(e),
+            }
+        }
+        pub fn point_mul_unencoded(
+            &self,
+            x: &[u8; DATA_LEN],
+            y: &[u8; DATA_LEN],
+            s: &[u8; DATA_LEN],
+        ) -> Result<([u8; DATA_LEN], [u8; DATA_LEN]), Status> {
+            let mut product_x = [0u8; DATA_LEN];
+            let mut product_y = [0u8; DATA_LEN];
+            let rc = unsafe {
+                pointMultiplication(
+                    x.as_ptr() as *mut Cpa8U,
+                    y.as_ptr() as *mut Cpa8U,
+                    s.as_ptr() as *mut Cpa8U,
+                    product_x.as_mut_ptr() as *mut Cpa8U,
+                    product_y.as_mut_ptr() as *mut Cpa8U,
+                    self.0,
+                )
+            };
+            match Status::from(rc) {
+                Status::Success => Ok((product_x, product_y)),
+                e => Err(e),
+            }
+        }
+
+        pub fn add_points(
+            &self,
+            x1: &[u8; DATA_LEN],
+            y1: &[u8; DATA_LEN],
+            x2: &[u8; DATA_LEN],
+            y2: &[u8; DATA_LEN],
+        ) -> Result<([u8; DATA_LEN], [u8; DATA_LEN]), Status> {
+            let sum_x = [0u8; DATA_LEN];
+            let sum_y = [0u8; DATA_LEN];
+            let rc = unsafe {
+                addPoints(
+                    x1.as_ptr() as *mut Cpa8U,
+                    y1.as_ptr() as *mut Cpa8U,
+                    x2.as_ptr() as *mut Cpa8U,
+                    y2.as_ptr() as *mut Cpa8U,
+                    sum_x.as_ptr() as *mut Cpa8U,
+                    sum_y.as_ptr() as *mut Cpa8U,
+                )
+            };
+            match Status::from(rc) {
+                Status::Success => Ok((sum_x, sum_y)),
+                e => Err(e),
+            }
+        }
+
+        pub fn encode_point(
+            &self,
+            x: &[u8; DATA_LEN],
+            y: &[u8; DATA_LEN],
+        ) -> Result<[u8; DATA_LEN], Status> {
+            let encoded = [0u8; DATA_LEN];
+            unsafe {
+                encodePoint(
+                    x.as_ptr() as *mut Cpa8U,
+                    y.as_ptr() as *mut Cpa8U,
+                    encoded.as_ptr() as *mut Cpa8U,
+                );
+            }
+            Ok(encoded)
         }
     }
 }
